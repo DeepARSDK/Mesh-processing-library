@@ -18,6 +18,7 @@
 #include <array>
 #include <cctype>  // isdigit()
 #include <cerrno>  // errno
+#include <stdexcept>  // runtime_error (DeepAR patch)
 #include <chrono>
 #include <cstdarg>  // va_list
 #include <cstring>  // memcpy(), strlen(), strerror()
@@ -294,7 +295,8 @@ void details::assertx_aux2(const char* s) {
   showf("Fatal assertion error: %s\n", details::forward_slash(s).c_str());
   if (errno) std::cerr << "possible error: " << std::strerror(errno) << "\n";
   show_possible_win32_error();
-  abort();
+  // (DeepAR patch) Throw instead of aborting so a host application can recover from processing failures.
+  throw std::runtime_error(std::string("libHh assertion: ") + s);
 }
 
 // We use "const char*" rather than "string" for efficiency of hashing in Warnings.

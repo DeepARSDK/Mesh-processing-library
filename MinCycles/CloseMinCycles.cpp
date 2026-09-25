@@ -585,7 +585,15 @@ void CloseMinCycles::find_cycles() {
         }
       }
       lbsr = pqvlbsr.min_priority();
-      if (!(ubsr >= lbsr)) assertnever(SSHOW(_mesh.vertex_id(pqvlbsr.min()), lbsr));
+      // (DeepAR patch) The lower bounds accumulate float rounding error over long BFS paths, so allow a
+      // relative epsilon like the new_lower_bound_radius clamp above instead of asserting exact consistency,
+      // and stop the simplification early instead of aborting if the bounds are grossly inconsistent.
+      if (!(ubsr >= lbsr * (1.f - 1e-5f))) {
+        showdf("Warning: cycle bound inconsistency (lbsr=%g ubsr=%g); stopping topology simplification early\n",
+               lbsr, ubsr);
+        break;
+      }
+      if (lbsr > ubsr) lbsr = ubsr;
     }
     if (!result) continue;  // No more cycles in this connected component of the mesh.
     // Process the cycle if its radius is within some fraction of the lower-bound minimal cycle radius lbsr.
