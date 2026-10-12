@@ -585,15 +585,17 @@ void CloseMinCycles::find_cycles() {
         }
       }
       lbsr = pqvlbsr.min_priority();
-      // (DeepAR patch) The lower bounds accumulate float rounding error over long BFS paths, so allow a
-      // relative epsilon like the new_lower_bound_radius clamp above instead of asserting exact consistency,
-      // and stop the simplification early instead of aborting if the bounds are grossly inconsistent.
+      // (DeepAR patch) Upstream asserts ubsr >= lbsr here, but float rounding can leave a lower bound a few ulps
+      // above the smallest found cycle (the same cycle measured from two seeds sums its path lengths in a
+      // different order). Tolerate that and continue: the seed that set ubsr is revisited with its exact radius
+      // and passes the unchanged processing test below. Stop early (keeping cycles already closed) only if the
+      // bounds are grossly inconsistent. Do NOT clamp lbsr to ubsr: then no seed can ever satisfy the processing
+      // test and the loop repeats the same searches forever.
       if (!(ubsr >= lbsr * (1.f - 1e-5f))) {
         showdf("Warning: cycle bound inconsistency (lbsr=%g ubsr=%g); stopping topology simplification early\n",
                lbsr, ubsr);
         break;
       }
-      if (lbsr > ubsr) lbsr = ubsr;
     }
     if (!result) continue;  // No more cycles in this connected component of the mesh.
     // Process the cycle if its radius is within some fraction of the lower-bound minimal cycle radius lbsr.
